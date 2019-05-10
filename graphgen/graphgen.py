@@ -12,7 +12,7 @@ import pandas as pd
 #    
 
 
-def create_graph(graph, graph_mapper, data_provider):
+def create_graph(graph, graph_mapper, data_provider, update = True):
     '''
     
     Nodes in the graph will have an attribute '_id_' that was originally the key in the source data.
@@ -58,20 +58,34 @@ def create_graph(graph, graph_mapper, data_provider):
                     columns: {} - attributes: {}".format(node_type['type'], raw_data.columns, 
                     node_types['attributes'])
                 
-        # do selection of attribute list
-        nodes_df = raw_data.loc[:,node_type['attributes']]
-        nodes_df.rename(columns={node_type['key']:'_id_'}, inplace = True)
-        # set index on the key
-        nodes_df.set_index('_id_', inplace = True)
-        nodes_df['_type_'] = node_type['type']
-        nodes_list = [x for x in nodes_df.to_dict('index').items()]
-        graph.add_nodes_from(nodes_list)
+        id = node_type['key']
+        id_index = raw_data.columns.get_loc(id)
+
+        attr_dict = {}
+        for a in node_type['attributes']:
+            attr_dict[a] = raw_data.columns.get_loc(a)
+
+        attr = dict()
+        count = 0
+        for row in raw_data.itertuples(index = False):
+            node_id = row[id_index]
+            if not update and graph.has_node(node_id):
+                continue
+
+            attr['_type_'] = node_type['type']
+            for k,v in attr_dict.items():
+                attr[k] = row[v]
+            graph.add_node(node_id, **attr)
+            count += 1
+        print(count)
 
         
     for edge_type in edge_types:
         
         assert all(c in raw_data.columns for c in edge_type['attributes']), \
-                "mismatch between data_provider and mapper's attributes for edge: {}".format(edge_type['type'])
+                "mismatch between data_provider and mapper's attributes for edge: {}\n \
+                    columns: {} - attributes: {}".format(edge_type['type'], raw_data.columns, 
+                    edge_types['attributes'])
 
         src = edge_type['from']['key']
         src_index = raw_data.columns.get_loc(src)
@@ -82,12 +96,12 @@ def create_graph(graph, graph_mapper, data_provider):
         for a in edge_type['attributes']:
             attr_dict[a] = raw_data.columns.get_loc(a)
         
+        attr = dict()
         for row in raw_data.itertuples(index = False):
-            attr = dict()
             attr['_type_'] = edge_type['type']
             for k,v in attr_dict.items():
                 attr[k] = row[v]
-            graph.add_edges_from([(row[src_index], row[dst_index], attr)])
+            graph.add_edge(row[src_index], row[dst_index], **attr)
         
         
     return graph
