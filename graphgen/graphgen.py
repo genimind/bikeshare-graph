@@ -55,8 +55,8 @@ def create_graph(graph, graph_mapper, data_provider, update = True):
     for node_type in node_types:
         assert all(c in raw_data.columns for c in node_type['attributes']), \
                 "mismatch between data_provider and mapper's attributes for node: {} \n \
-                    columns: {} - attributes: {}".format(node_type['type'], raw_data.columns, 
-                    node_types['attributes'])
+                    columns: {} - attributes: {}".format(node_type['type'], list(raw_data.columns), 
+                    node_type['attributes'])
                 
         id = node_type['key']
         id_index = raw_data.columns.get_loc(id)
