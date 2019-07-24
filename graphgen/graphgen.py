@@ -64,6 +64,7 @@ def create_graph(graph, graph_mapper, data_provider, update = True):
 #     print(edge_types)
     
     for node_type in node_types:
+<<<<<<< HEAD
         assert check_attributes(node_type, raw_data, node_type['attributes'])
        
         # TBD: Need to support multiple keys. For now we'll only have a single key for each record 
@@ -119,17 +120,4 @@ def create_graph(graph, graph_mapper, data_provider, update = True):
         
         
     return graph
-
-
-def fix_columns(df):
-    '''
-    '''
-
-    if any(' ' in x for x in df.columns):
-        col_rename = dict()
-        for c in df.columns:
-            col_rename[c] = c.replace(' ', '_')
-        df.rename(columns=col_rename, inplace = True)
-#     print(df.columns)
-
 
