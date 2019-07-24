@@ -11,6 +11,17 @@ import pandas as pd
 #    BIDIR  = 2
 #    
 
+def check_attributes(the_type, raw_data, attributes):
+    # get list of raw_data columns (raw_data is a pandas dataframe)
+    columns = raw_data.columns
+    for attr in attributes:
+        if attr['raw'] not in columns:
+            print("mismatch between raw data and mapper: \n \
+                 - {} \n \
+                 - columns: {} \n \
+                 - attribute: {}".format(the_type, columns.values, attr['raw']))
+            return False
+    return True
 
 def create_graph(graph, graph_mapper, data_provider, update = True):
     '''
@@ -38,7 +49,7 @@ def create_graph(graph, graph_mapper, data_provider, update = True):
     assert (graph != None),"Graph object wasn't constructed correctly"
     assert (isinstance(data_provider, pd.DataFrame)),"The data provider should be a pandas DataFrame"
     
-    # get list of node types and edge_types
+    # get list of node types and edge types
     node_types = []
     edge_types = []
 
@@ -53,55 +64,58 @@ def create_graph(graph, graph_mapper, data_provider, update = True):
 #     print(edge_types)
     
     for node_type in node_types:
-        assert all(c in raw_data.columns for c in node_type['attributes']), \
-                "mismatch between data_provider and mapper's attributes for node: {} \n \
-                    columns: {} - attributes: {}".format(node_type['type'], raw_data.columns, 
-                    node_types['attributes'])
-                
-        id = node_type['key']
-        id_index = raw_data.columns.get_loc(id)
+        assert check_attributes(node_type, raw_data, node_type['attributes'])
+       
+        # TBD: Need to support multiple keys. For now we'll only have a single key for each record 
+        node_key = node_type['key'][0]
+        id_name = node_key['name']
+        id_raw_name = raw_data.columns.get_loc(node_key['raw'])
 
         attr_dict = {}
         for a in node_type['attributes']:
-            attr_dict[a] = raw_data.columns.get_loc(a)
+            attr_dict[a['name']] = raw_data.columns.get_loc(a['raw'])
 
         attr = dict()
-        count = 0
+        # count = 0
+        node_type_name = node_type['type']
         for row in raw_data.itertuples(index = False):
-            node_id = row[id_index]
+            node_id = '{}_{}'.format(node_type_name, row[id_raw_name])
             if not update and graph.has_node(node_id):
                 continue
 
-            attr['_type_'] = node_type['type']
+            attr['_type_'] = node_type_name
             for k,v in attr_dict.items():
                 attr[k] = row[v]
             graph.add_node(node_id, **attr)
-            count += 1
-        print(count)
+            # count += 1
+        # print(count)
 
         
     for edge_type in edge_types:
         
-        assert all(c in raw_data.columns for c in edge_type['attributes']), \
-                "mismatch between data_provider and mapper's attributes for edge: {}\n \
-                    columns: {} - attributes: {}".format(edge_type['type'], raw_data.columns, 
-                    edge_types['attributes'])
+        assert check_attributes(edge_type, raw_data, edge_type['attributes'])
 
-        src = edge_type['from']['key']
+        # TBD: Need to support multiple keys. For now we'll only have a single key for each record 
+        src = edge_type['from']['key'][0]['raw']
+        src_type_name = edge_type['from']['type']
         src_index = raw_data.columns.get_loc(src)
-        dst = edge_type['to']['key']
+
+        dst = edge_type['to']['key'][0]['raw']
         dst_index = raw_data.columns.get_loc(dst)
+        dst_type_name = edge_type['to']['type']
 
         attr_dict = {}
         for a in edge_type['attributes']:
-            attr_dict[a] = raw_data.columns.get_loc(a)
+            attr_dict[a['name']] = raw_data.columns.get_loc(a['raw'])
         
         attr = dict()
         for row in raw_data.itertuples(index = False):
             attr['_type_'] = edge_type['type']
             for k,v in attr_dict.items():
                 attr[k] = row[v]
-            graph.add_edge(row[src_index], row[dst_index], **attr)
+            from_id = '{}_{}'.format(src_type_name, row[src_index])
+            to_id   = '{}_{}'.format(dst_type_name, row[dst_index])
+            graph.add_edge(from_id, to_id, **attr)
         
         
     return graph
