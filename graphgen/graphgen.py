@@ -64,7 +64,6 @@ def create_graph(graph, graph_mapper, data_provider, update = True):
 #     print(edge_types)
     
     for node_type in node_types:
-<<<<<<< HEAD
         assert check_attributes(node_type, raw_data, node_type['attributes'])
        
         # TBD: Need to support multiple keys. For now we'll only have a single key for each record 
